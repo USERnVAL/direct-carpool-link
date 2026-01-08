@@ -57,14 +57,14 @@ const Rechercher = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
 
-  const [depart, setDepart] = useState(searchParams.get("depart") || "");
-  const [arrivee, setArrivee] = useState(searchParams.get("arrivee") || "");
+  const [depart, setDepart] = useState(searchParams.get("depart") || "_all");
+  const [arrivee, setArrivee] = useState(searchParams.get("arrivee") || "_all");
   const [joursSelectionnes, setJoursSelectionnes] = useState<string[]>([]);
 
   const filteredTrips = useMemo(() => {
     return MOCK_TRIPS.filter((trip) => {
-      if (depart && trip.depart !== depart) return false;
-      if (arrivee && trip.arrivee !== arrivee) return false;
+      if (depart !== "_all" && trip.depart !== depart) return false;
+      if (arrivee !== "_all" && trip.arrivee !== arrivee) return false;
       if (joursSelectionnes.length > 0) {
         const hasMatchingDay = joursSelectionnes.some((jour) =>
           trip.jours.includes(jour)
@@ -77,14 +77,14 @@ const Rechercher = () => {
 
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (depart) params.set("depart", depart);
-    if (arrivee) params.set("arrivee", arrivee);
+    if (depart !== "_all") params.set("depart", depart);
+    if (arrivee !== "_all") params.set("arrivee", arrivee);
     setSearchParams(params);
   };
 
   const clearFilters = () => {
-    setDepart("");
-    setArrivee("");
+    setDepart("_all");
+    setArrivee("_all");
     setJoursSelectionnes([]);
     setSearchParams({});
   };
@@ -122,7 +122,7 @@ const Rechercher = () => {
                   <SelectValue placeholder="Toutes les communes" />
                 </SelectTrigger>
                 <SelectContent className="bg-card z-50">
-                  <SelectItem value="">Toutes les communes</SelectItem>
+                  <SelectItem value="_all">Toutes les communes</SelectItem>
                   {COMMUNES_ABIDJAN.map((commune) => (
                     <SelectItem key={commune} value={commune}>
                       {commune}
@@ -142,7 +142,7 @@ const Rechercher = () => {
                   <SelectValue placeholder="Toutes les communes" />
                 </SelectTrigger>
                 <SelectContent className="bg-card z-50">
-                  <SelectItem value="">Toutes les communes</SelectItem>
+                  <SelectItem value="_all">Toutes les communes</SelectItem>
                   {COMMUNES_ABIDJAN.map((commune) => (
                     <SelectItem key={commune} value={commune}>
                       {commune}
@@ -164,7 +164,7 @@ const Rechercher = () => {
               >
                 <Filter className="h-4 w-4" />
               </Button>
-              {(depart || arrivee || joursSelectionnes.length > 0) && (
+              {(depart !== "_all" || arrivee !== "_all" || joursSelectionnes.length > 0) && (
                 <Button variant="ghost" onClick={clearFilters}>
                   <X className="h-4 w-4" />
                   Effacer
