@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,12 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COMMUNES_ABIDJAN, JOURS_SEMAINE } from "@/lib/communes";
-import { Car, MapPin, Calendar, Users, Lock } from "lucide-react";
+import { Car, MapPin, Calendar, Users, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const Publier = () => {
-  // Simulated auth - in real app, check if user is logged in
-  const isLoggedIn = false;
+  const { user, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     depart: "",
@@ -43,7 +46,7 @@ const Publier = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.depart || !formData.arrivee) {
@@ -66,12 +69,50 @@ const Publier = () => {
       return;
     }
 
-    // In real app, send to backend
-    console.log("Trip created:", formData);
-    toast.success("Trajet publié avec succès !");
+    if (!user) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.from("trajets").insert({
+        conducteur_id: user.id,
+        depart: formData.depart,
+        arrivee: formData.arrivee,
+        zone1: formData.zone1 === "_none" ? null : formData.zone1 || null,
+        zone2: formData.zone2 === "_none" ? null : formData.zone2 || null,
+        zone3: formData.zone3 === "_none" ? null : formData.zone3 || null,
+        jours: formData.jours,
+        places_disponibles: parseInt(formData.places),
+        prix: parseInt(formData.prix),
+        description: formData.description || null,
+      });
+
+      if (error) throw error;
+
+      toast.success("Trajet publié avec succès !");
+      navigate("/mes-trajets");
+    } catch (error) {
+      console.error("Error creating trajet:", error);
+      toast.error("Erreur lors de la publication");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (!isLoggedIn) {
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="container-app py-16 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
     return (
       <Layout>
         <div className="container-app py-16">
@@ -283,8 +324,21 @@ const Publier = () => {
                 />
               </div>
 
-              <Button type="submit" variant="gradient" size="lg" className="w-full">
-                Publier le trajet
+              <Button
+                type="submit"
+                variant="gradient"
+                size="lg"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Publication...
+                  </>
+                ) : (
+                  "Publier le trajet"
+                )}
               </Button>
             </form>
           </CardContent>

@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Car, Phone, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Car, Phone, Lock, Eye, EyeOff, User, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 const Inscription = () => {
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -17,6 +20,7 @@ const Inscription = () => {
     nom: "",
     prenom: "",
     telephone: "",
+    email: "",
     password: "",
     confirmPassword: "",
   });
@@ -39,6 +43,13 @@ const Inscription = () => {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Email invalide");
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password.length < 6) {
       toast.error("Le mot de passe doit contenir au moins 6 caractères");
       setIsLoading(false);
@@ -57,12 +68,25 @@ const Inscription = () => {
       return;
     }
 
-    // In real app, register with backend
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    toast.success("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
+    const { error } = await signUp(formData.email, formData.password, {
+      nom: formData.nom,
+      prenom: formData.prenom,
+      telephone: formData.telephone.replace(/\s/g, ""),
+    });
+
+    if (error) {
+      if (error.message.includes("User already registered")) {
+        toast.error("Un compte existe déjà avec cet email");
+      } else {
+        toast.error("Erreur lors de l'inscription: " + error.message);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success("Compte créé avec succès !");
     setIsLoading(false);
-    // Redirect to login
+    navigate("/");
   };
 
   return (
@@ -123,6 +147,23 @@ const Inscription = () => {
                     value={formData.telephone}
                     onChange={(e) =>
                       setFormData({ ...formData, telephone: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="votre@email.com"
+                    className="pl-10"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
                     }
                   />
                 </div>

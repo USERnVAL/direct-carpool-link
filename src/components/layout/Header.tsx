@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Car, Menu, X, User, LogOut, Plus, Search, LayoutDashboard } from "lucide-react";
 import {
@@ -10,18 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Simulated auth state - will be replaced with real auth
-const useAuth = () => {
-  return {
-    user: null as { nom: string; prenom: string; isAdmin?: boolean } | null,
-    logout: () => {},
-  };
-};
-
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, isAdmin, signOut } = useAuth();
 
   const navigation = [
     { name: "Accueil", href: "/", icon: null },
@@ -30,6 +24,11 @@ const Header = () => {
   ];
 
   const isActive = (href: string) => location.pathname === href;
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -61,12 +60,12 @@ const Header = () => {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          {user ? (
+          {user && profile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <User className="h-4 w-4" />
-                  {user.prenom}
+                  {profile.prenom}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-card">
@@ -82,7 +81,7 @@ const Header = () => {
                     Mes trajets
                   </Link>
                 </DropdownMenuItem>
-                {user.isAdmin && (
+                {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
@@ -94,7 +93,7 @@ const Header = () => {
                   </>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive">
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   Déconnexion
                 </DropdownMenuItem>
@@ -147,7 +146,7 @@ const Header = () => {
               </Link>
             ))}
             <div className="pt-4 border-t space-y-2">
-              {user ? (
+              {user && profile ? (
                 <>
                   <Link to="/profil" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-2">
@@ -161,11 +160,19 @@ const Header = () => {
                       Mes trajets
                     </Button>
                   </Link>
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start gap-2">
+                        <LayoutDashboard className="h-4 w-4" />
+                        Administration
+                      </Button>
+                    </Link>
+                  )}
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-2 text-destructive"
                     onClick={() => {
-                      logout();
+                      handleLogout();
                       setMobileMenuOpen(false);
                     }}
                   >
