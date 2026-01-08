@@ -195,7 +195,7 @@ const Publier = () => {
                           <SelectValue placeholder={`Zone ${num}`} />
                         </SelectTrigger>
                         <SelectContent className="bg-card z-50">
-                          <SelectItem value="">Aucune</SelectItem>
+                          <SelectItem value="_none">Aucune</SelectItem>
                           {COMMUNES_ABIDJAN.map((commune) => (
                             <SelectItem key={commune} value={commune}>
                               {commune}
