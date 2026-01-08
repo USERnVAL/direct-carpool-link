@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,12 @@ import { Car, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 const Connexion = () => {
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    telephone: "",
+    email: "",
     password: "",
   });
 
@@ -20,10 +23,8 @@ const Connexion = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Validate phone number
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(formData.telephone.replace(/\s/g, ""))) {
-      toast.error("Numéro de téléphone invalide (10 chiffres requis)");
+    if (!formData.email) {
+      toast.error("Veuillez entrer votre email");
       setIsLoading(false);
       return;
     }
@@ -34,12 +35,23 @@ const Connexion = () => {
       return;
     }
 
-    // In real app, authenticate with backend
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+    const { error } = await signIn(formData.email, formData.password);
+
+    if (error) {
+      if (error.message.includes("Invalid login credentials")) {
+        toast.error("Email ou mot de passe incorrect");
+      } else if (error.message.includes("Email not confirmed")) {
+        toast.error("Veuillez confirmer votre email");
+      } else {
+        toast.error("Erreur de connexion: " + error.message);
+      }
+      setIsLoading(false);
+      return;
+    }
+
     toast.success("Connexion réussie !");
     setIsLoading(false);
-    // Redirect to home
+    navigate("/");
   };
 
   return (
@@ -60,17 +72,17 @@ const Connexion = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="telephone">Numéro de téléphone</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="telephone"
-                    type="tel"
-                    placeholder="07 XX XX XX XX"
+                    id="email"
+                    type="email"
+                    placeholder="votre@email.com"
                     className="pl-10"
-                    value={formData.telephone}
+                    value={formData.email}
                     onChange={(e) =>
-                      setFormData({ ...formData, telephone: e.target.value })
+                      setFormData({ ...formData, email: e.target.value })
                     }
                   />
                 </div>
